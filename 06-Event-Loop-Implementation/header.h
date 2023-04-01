@@ -62,31 +62,23 @@ static bool try_one_request(Conn *conn) {
     return false;
   }
   if (4 + len > conn->rbuf_size) {
-    // not enough data in the buffer. Will retry in the next iteration
     return false;
   }
 
-  // got one request, do something with it
   printf("client says: %.*s\n", len, &conn->rbuf[4]);
 
-  // generating echoing response
   memcpy(&conn->wbuf[0], &len, 4);
   memcpy(&conn->wbuf[4], &conn->rbuf[4], len);
   conn->wbuf_size = 4 + len;
 
-  // remove the request from the buffer.
-  // note: frequent memmove is inefficient.
-  // note: need better handling for production code.
   size_t remain = conn->rbuf_size - 4 - len;
   if (remain) {
     memmove(conn->rbuf, &conn->rbuf[4 + len], remain);
   }
   conn->rbuf_size = remain;
 
-  // change state
   conn->state = STATE_RES;
   state_res(conn);
-  // continue the outer loop if the request was fully processed
   return (conn->state == STATE_REQ);
 }
 
@@ -175,7 +167,6 @@ static void conn_put(std::vector<Conn *> &fd2conn, struct Conn *conn) {
 }
 
 static int32_t accept_new_conn(std::vector<Conn *> &fd2conn, int fd) {
-  // accept
   struct sockaddr_in client_addr = {};
   socklen_t socklen = sizeof(client_addr);
   int connfd = accept(fd, (struct sockaddr *)&client_addr, &socklen);
@@ -183,11 +174,7 @@ static int32_t accept_new_conn(std::vector<Conn *> &fd2conn, int fd) {
     LOG_INFO("accept() error");
     return -1; // error
   }
-
-  // set the new connection fd to nonblocking mode
   fd_set_nb(connfd);
-  // creating the struct Conn
-  // struct Conn *conn = (struct Conn *)malloc(sizeof(struct Conn));
   struct Conn *conn = new (struct Conn);
   if (!conn) {
     close(connfd);
