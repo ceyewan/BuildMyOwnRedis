@@ -75,25 +75,6 @@ static int32_t parse_req(const uint8_t *data, size_t len,
   }
   return 0;
 }
-struct Entry {
-  struct HNode node;
-  std::string key;
-  std::string val;
-};
-
-static bool entry_eq(HNode *lhs, HNode *rhs) {
-  struct Entry *le = container_of(lhs, struct Entry, node);
-  struct Entry *re = container_of(rhs, struct Entry, node);
-  return lhs->hcode == rhs->hcode && le->key == re->key;
-}
-
-static uint64_t str_hash(const uint8_t *data, size_t len) {
-  uint32_t h = 0x811C9DC5;
-  for (size_t i = 0; i < len; i++) {
-    h = (h + data[i]) * 0x01000193;
-  }
-  return h;
-}
 
 static void out_nil(std::string &out) { out.push_back(SER_NIL); }
 
@@ -166,19 +147,6 @@ static void do_del(std::vector<std::string> &cmd, std::string &out) {
     delete container_of(node, Entry, node);
   }
   return out_int(out, node ? 1 : 0);
-}
-
-static void h_scan(HTab *tab, void (*f)(HNode *, void *), void *arg) {
-  if (tab->size == 0) {
-    return;
-  }
-  for (size_t i = 0; i < tab->mask + 1; i++) {
-    HNode *node = tab->tab[i];
-    while (node) {
-      f(node, arg);
-      node = node->next;
-    }
-  }
 }
 
 static void cb_scan(HNode *node, void *arg) {

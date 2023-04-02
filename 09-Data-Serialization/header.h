@@ -15,8 +15,6 @@
 #include <unistd.h>
 #include <vector>
 
-#define container_of(ptr, type, member)                                        \
-  ((type *)((char *)(ptr)-offsetof(type, member)))
 #define LOG_INFO(x) fprintf(stderr, "[LOG_INFO] msg = %s\n", x);
 
 const size_t k_max_msg = 4096;
