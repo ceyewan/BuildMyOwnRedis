@@ -19,12 +19,6 @@
 #include <unistd.h>
 #include <vector>
 
-#define LOG_ERROR(x)                                                           \
-  {                                                                            \
-    int err = errno;                                                           \
-    fprintf(stderr, "[LOG_ERROR] err = %d msg = %s\n", err, x);                \
-    abort();                                                                   \
-  }
 #define LOG_INFO(x) fprintf(stderr, "[LOG_INFO] msg = %s\n", x);
 
 const size_t k_max_msg = 4096;
