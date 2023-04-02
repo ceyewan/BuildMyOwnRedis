@@ -16,17 +16,7 @@
 #include <vector>
 
 #define container_of(ptr, type, member)                                        \
-  ({                                                                           \
-    const typeof(((type *)0)->member) *__mptr = (ptr);                         \
-    (type *)((char *)__mptr - offsetof(type, member));                         \
-  })
-
-#define LOG_ERROR(x)                                                           \
-  {                                                                            \
-    int err = errno;                                                           \
-    fprintf(stderr, "[LOG_ERROR] err = %d msg = %s\n", err, x);                \
-    abort();                                                                   \
-  }
+  ((type *)((char *)(ptr)-offsetof(type, member)))
 #define LOG_INFO(x) fprintf(stderr, "[LOG_INFO] msg = %s\n", x);
 
 const size_t k_max_msg = 4096;
@@ -34,6 +24,10 @@ const size_t k_max_args = 1024;
 
 enum { STATE_REQ = 0, STATE_RES = 1, STATE_END = 2 };
 enum { RES_OK = 0, RES_ERR = 1, RES_NX = 2 };
+
+static struct {
+  HMap db;
+} g_data;
 
 struct Conn {
   int fd = -1;
@@ -47,8 +41,6 @@ struct Conn {
 
 static void state_req(Conn *conn);
 static void state_res(Conn *conn);
-
-static std::map<std::string, std::string> g_map;
 
 /* 解析请求 请求的格式为 nstr len1 str1 len2 str2 ... len_n, str_n */
 static int32_t parse_req(const uint8_t *data, size_t len,
@@ -85,10 +77,6 @@ struct Entry {
   std::string key;
   std::string val;
 };
-
-static struct {
-  HMap db;
-} g_data;
 
 static bool entry_eq(HNode *lhs, HNode *rhs) {
   struct Entry *le = container_of(lhs, struct Entry, node);
@@ -155,7 +143,8 @@ static uint32_t do_del(std::vector<std::string> &cmd) {
 
 /* 比较字符串是否相等 */
 static bool cmd_is(std::string &str, const char *chr) {
-  return 0 == strcasecmp(str.c_str(), chr);
+  // return 0 == strcasecmp(str.c_str(), chr);
+  return str == std::string(chr);
 }
 
 /* 对请求进行操作 */
@@ -186,13 +175,13 @@ static void fd_set_nb(int fd) {
   errno = 0;
   int flags = fcntl(fd, F_GETFL, 0);
   if (errno) {
-    LOG_ERROR("fcntl error!");
+    LOG_INFO("fcntl error!");
     return;
   }
   flags |= O_NONBLOCK;
   fcntl(fd, F_SETFL, flags);
   if (errno) {
-    LOG_ERROR("fcntl error!");
+    LOG_INFO("fcntl error!");
     return;
   }
 }
@@ -212,7 +201,6 @@ static bool try_one_request(Conn *conn) {
   if (4 + len > conn->rbuf_size) {
     return false;
   }
-
   /* 得到一个 request, 并生成一个 response */
   uint32_t rescode = 0;
   uint32_t wlen = 0;
@@ -250,15 +238,16 @@ static bool try_fill_buffer(Conn *conn) {
     size_t cap = sizeof(conn->rbuf) - conn->rbuf_size;
     ret = read(conn->fd, &conn->rbuf[conn->rbuf_size], cap);
   } while (ret < 0 && errno == EINTR);
-  /* EAFAIN 提示现在没有数据可读, 稍后重试 */
+  /* EAGAIN 提示现在没有数据可读, 稍后重试 */
   if (ret < 0 && errno == EAGAIN) {
     return false;
   }
   if (ret < 0) {
-    LOG_ERROR("read() error");
+    LOG_INFO("read() error");
     conn->state = STATE_END;
     return false;
   }
+  /* EOF 表示文件终止符, 文件读完了 */
   if (ret == 0) {
     if (conn->rbuf_size > 0) {
       LOG_INFO("unexpected EOF");
@@ -270,7 +259,7 @@ static bool try_fill_buffer(Conn *conn) {
   }
   conn->rbuf_size += (size_t)ret;
   assert(conn->rbuf_size <= sizeof(conn->rbuf) - conn->rbuf_size);
-  // 一个一个的处理请求
+  /* 处理一个请求 */
   while (try_one_request(conn)) {
   }
   return conn->state == STATE_REQ;
@@ -291,13 +280,13 @@ static bool try_flush_buffer(Conn *conn) {
     return false;
   }
   if (ret < 0) {
-    LOG_ERROR("write error");
+    LOG_INFO("write error");
     conn->state = STATE_END;
     return false;
   }
   conn->wbuf_sent += (size_t)ret;
   assert(conn->wbuf_sent <= conn->wbuf_size);
-
+  /* 数据全部写入了 fd 的缓冲区中*/
   if (conn->wbuf_sent == conn->wbuf_size) {
     conn->state = STATE_REQ;
     conn->wbuf_sent = 0;
@@ -312,7 +301,7 @@ static void state_res(Conn *conn) {
   }
 }
 
-inline void connection_io(Conn *conn) {
+static void connection_io(Conn *conn) {
   if (conn->state == STATE_REQ) {
     state_req(conn);
   } else if (conn->state == STATE_RES) {
@@ -329,7 +318,7 @@ static void conn_put(std::vector<Conn *> &fd2conn, struct Conn *conn) {
   fd2conn[conn->fd] = conn;
 }
 
-inline int32_t accept_new_conn(std::vector<Conn *> &fd2conn, int fd) {
+static int32_t accept_new_conn(std::vector<Conn *> &fd2conn, int fd) {
   struct sockaddr_in client_addr = {};
   socklen_t socklen = sizeof(client_addr);
   int connfd = accept(fd, (struct sockaddr *)&client_addr, &socklen);
@@ -338,7 +327,7 @@ inline int32_t accept_new_conn(std::vector<Conn *> &fd2conn, int fd) {
     return -1;
   }
   fd_set_nb(connfd);
-  struct Conn *conn = new (struct Conn);
+  struct Conn *conn = (struct Conn *)malloc(sizeof(struct Conn));
   if (!conn) {
     close(connfd);
     return -1;
@@ -389,7 +378,7 @@ int main() {
 
     int ret = poll(poll_args.data(), (nfds_t)poll_args.size(), 1000);
     if (ret < 0) {
-      LOG_ERROR("poll error!");
+      LOG_INFO("poll error!");
       return -1;
     }
 

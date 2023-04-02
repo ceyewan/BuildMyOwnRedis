@@ -1,4 +1,33 @@
-#include "header.h"
+#include <arpa/inet.h>
+#include <assert.h>
+#include <cassert>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <errno.h>
+#include <fcntl.h>
+#include <map>
+#include <netinet/ip.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <string>
+#include <sys/poll.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <vector>
+
+#define LOG_ERROR(x)                                                           \
+  {                                                                            \
+    int err = errno;                                                           \
+    fprintf(stderr, "[LOG_ERROR] err = %d msg = %s\n", err, x);                \
+    abort();                                                                   \
+  }
+#define LOG_INFO(x) fprintf(stderr, "[LOG_INFO] msg = %s\n", x);
+
+const size_t k_max_msg = 4096;
 
 static int32_t read_full(int fd, char *buf, size_t n) {
   while (n > 0) {
