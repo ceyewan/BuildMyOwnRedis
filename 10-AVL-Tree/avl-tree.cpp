@@ -88,6 +88,7 @@ static AVLNode *avl_fix_right(AVLNode *root) {
   return root_left(root);
 }
 
+/* 递归的调用 avl_fix_left 或者 avl-fix-right 知道 root 节点 */
 static AVLNode *avl_fix(AVLNode *node) {
   while (true) {
     avl_update(node);
@@ -113,6 +114,10 @@ static AVLNode *avl_fix(AVLNode *node) {
   }
 }
 
+/* 如果右子树为 NULL, 直接将用左子树替换 node 然后返回
+ * 如果右子树有数据，查找比 node->val 大的第一个元素（右子树中最左的节点）
+ * 将这个节点 victim 从 tree 中删除, 然后将 node 存到 victim 的位置上
+ * 将 node 的子树的 parent 设为这个地址, 将 parent 的子树也设为这个地址 */
 static AVLNode *avl_del(AVLNode *node) {
   if (node->right == NULL) {
     AVLNode *parent = node->parent;
