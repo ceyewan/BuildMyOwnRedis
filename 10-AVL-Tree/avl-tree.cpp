@@ -28,43 +28,50 @@ static void avl_update(AVLNode *node) {
   node->cnt = 1 + avl_cnt(node->left) + avl_cnt(node->right);
 }
 
-/* 左旋操作, 将右子树设为根节点
- * 1. 将右子树的左子树设为 node 的右子树
- * 2. 将左子树的左子树设为 node
+/* 左旋操作, 将右子树 new_node 设为根节点
+ * 1. 将 new_node 的左子树设为 node 的右子树
+ * 2. 将 node 设为 new_node 的左子树
  * 3. 调整 node 和 new_node 的深度以及大小 */
 static AVLNode *root_left(AVLNode *node) {
   AVLNode *new_node = node->right; // 右子树
+  // 操作 1
   if (new_node->left) {
     new_node->left->parent = node;
   }
   node->right = new_node->left;
+  // 操作 2
   new_node->left = node;
   new_node->parent = node->parent;
   node->parent = new_node;
+  // 操作 3
   avl_update(node);
   avl_update(new_node);
   return new_node;
 }
 
-/* 右旋操作, 将左子树设为根节点
- * 1. 将左子树的右子树设为 node 的左子树
- * 2. 将左子树的右子树设为 node
+/* 右旋操作, 将左子树 new_node 设为根节点
+ * 1. 将 new_node 的右子树设为 node 的左子树
+ * 2. 将 node 设为 new_node 的右子树
  * 3. 调整 node 和 new_node 的深度以及大小 */
 static AVLNode *root_right(AVLNode *node) {
   AVLNode *new_node = node->left;
+  // 操作 1
   if (new_node->right) {
     new_node->right->parent = node;
   }
   node->left = new_node->right;
+  // 操作 2
   new_node->right = node;
   new_node->parent = node->parent;
   node->parent = new_node;
-
+  // 操作 3
   avl_update(node);
   avl_update(new_node);
   return new_node;
 }
 
+/* 左子树高, 需要调用右旋
+ * 考虑当左子树右子树高时, 也就是 LR 型, 需要先对左子树左旋转化为 LL 型 */
 static AVLNode *avl_fix_left(AVLNode *root) {
   if (avl_depth(root->left->left) < avl_depth(root->left->right)) {
     root->left = root_left(root->left);
@@ -72,6 +79,8 @@ static AVLNode *avl_fix_left(AVLNode *root) {
   return root_right(root);
 }
 
+/* 右子树高, 需要调用左旋
+ * 考虑当右子树左子树高时, 也就是 RL 型, 需要先对右子树右旋转化为 RR 型 */
 static AVLNode *avl_fix_right(AVLNode *root) {
   if (avl_depth(root->right->right) < avl_depth(root->right->left)) {
     root->right = root_right(root->right);
@@ -85,6 +94,8 @@ static AVLNode *avl_fix(AVLNode *node) {
     uint32_t l = avl_depth(node->left);
     uint32_t r = avl_depth(node->right);
     AVLNode **from = NULL;
+    // from 为 node->parent->left/right 的地址, 在子树调整好之后
+    // 需要将 *from 设置子树的 root 节点
     if (node->parent) {
       from = (node->parent->left == node) ? &node->parent->left
                                           : &node->parent->right;
