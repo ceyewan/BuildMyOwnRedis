@@ -1,0 +1,6 @@
+all:
+	g++ -Wall -Wextra -O2 -std=c++14 server.cpp hashtable.cpp avl.cpp zset.cpp -o server
+	g++ -Wall -Wextra -O2 -std=c++14 client.cpp -o client
+
+clean:
+	rm server client
