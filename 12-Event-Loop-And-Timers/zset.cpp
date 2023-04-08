@@ -2,12 +2,12 @@
 #include <stdlib.h>
 #include <string.h>
 // proj
-#include "hashtable.h"
+#include "common.h"
 #include "zset.h"
 
 static ZNode *znode_new(const char *name, size_t len, double score) {
   ZNode *node = (ZNode *)malloc(sizeof(ZNode) + len);
-  assert(node);
+  assert(node); // not a good idea in real projects
   avl_init(&node->tree);
   node->hmap.next = NULL;
   node->hmap.hcode = str_hash((uint8_t *)name, len);
@@ -19,6 +19,7 @@ static ZNode *znode_new(const char *name, size_t len, double score) {
 
 static uint32_t min(size_t lhs, size_t rhs) { return lhs < rhs ? lhs : rhs; }
 
+// 根据 (score, name) tuple 对比较两个 node
 static bool zless(AVLNode *lhs, double score, const char *name, size_t len) {
   ZNode *zl = container_of(lhs, ZNode, tree);
   if (zl->score != score) {
@@ -31,7 +32,6 @@ static bool zless(AVLNode *lhs, double score, const char *name, size_t len) {
   return zl->len < len;
 }
 
-// 根据 (score, name) tuple 对比较两个 node
 static bool zless(AVLNode *lhs, AVLNode *rhs) {
   ZNode *zr = container_of(rhs, ZNode, tree);
   return zless(lhs, zr->score, zr->name, zr->len);
@@ -103,6 +103,7 @@ ZNode *zset_lookup(ZSet *zset, const char *name, size_t len) {
   if (!zset->tree) {
     return NULL;
   }
+
   HKey key;
   key.node.hcode = str_hash((uint8_t *)name, len);
   key.name = name;
@@ -132,8 +133,6 @@ ZNode *zset_pop(ZSet *zset, const char *name, size_t len) {
   return node;
 }
 
-// find the (score, name) tuple that is greater or equal to the argument,
-// then offset relative to it.
 ZNode *zset_query(ZSet *zset, double score, const char *name, size_t len,
                   int64_t offset) {
   AVLNode *found = NULL;
@@ -146,7 +145,6 @@ ZNode *zset_query(ZSet *zset, double score, const char *name, size_t len,
       cur = cur->left;
     }
   }
-
   if (found) {
     found = avl_offset(found, offset);
   }
