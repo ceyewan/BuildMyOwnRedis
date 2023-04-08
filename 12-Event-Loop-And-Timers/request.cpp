@@ -1,7 +1,5 @@
 #include "common.h"
-#include "do_map.h"
-#include "do_out.h"
-#include "do_zset.h"
+#include "do_cmd.h"
 
 /* 解析请求, 命令格式为 格式为 nstr len str len str ..., 循环 nstr 次 */
 static int32_t parse_req(const uint8_t *data, size_t len,
