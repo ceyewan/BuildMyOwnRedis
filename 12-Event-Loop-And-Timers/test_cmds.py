@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 
+import subprocess
+import shlex
 CASES = r'''
 $ ./client zscore asdf n1
 (nil)
@@ -41,9 +43,6 @@ $ ./client zquery zset 1 "" 0 10
 (arr) end
 '''
 
-
-import shlex
-import subprocess
 
 cmds = []
 outputs = []
