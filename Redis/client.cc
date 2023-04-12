@@ -47,8 +47,6 @@ static int32_t write_all(int fd, const char *buf, size_t n) {
   return 0;
 }
 
-const size_t k_max_msg = 4096;
-
 static int32_t send_req(int fd, const std::vector<std::string> &cmd) {
   uint32_t len = 4;
   for (const std::string &s : cmd) {
@@ -121,7 +119,7 @@ static int32_t on_response(const uint8_t *data, size_t size) {
     {
       int64_t val = 0;
       memcpy(&val, &data[1], 8);
-      printf("(int) %lld\n", val);
+      printf("(int) %ld\n", val);
       return 1 + 8;
     }
   case SER_DBL:
@@ -206,7 +204,7 @@ int main(int argc, char **argv) {
 
   struct sockaddr_in addr = {};
   addr.sin_family = AF_INET;
-  addr.sin_port = ntohs(1234);
+  addr.sin_port = ntohs(8888);
   addr.sin_addr.s_addr = ntohl(INADDR_LOOPBACK); // 127.0.0.1
   int rv = connect(fd, (const struct sockaddr *)&addr, sizeof(addr));
   if (rv) {

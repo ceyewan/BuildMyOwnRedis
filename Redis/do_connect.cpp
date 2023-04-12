@@ -76,7 +76,10 @@ int32_t accept_new_conn(int fd) {
   conn->wbuf_size = 0;
   conn->wbuf_sent = 0;
   conn->idle_start = get_monotonic_usec();
+  printf("start insert!\n");
+  dlist_init(&conn->idle_list);
   dlist_insert_before(&g_data.idle_list, &conn->idle_list);
+  printf("finish insert!\n");
   conn_put(conn);
   return 0;
 }
