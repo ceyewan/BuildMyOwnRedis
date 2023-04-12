@@ -81,7 +81,7 @@ void state_res(Conn *conn) {
 
 void connection_io(Conn *conn) {
   conn->idle_start = get_monotonic_usec();
-  dlist_detach((DList *)&conn->idle_start);
+  dlist_detach(&conn->idle_list);
   dlist_insert_before(&g_data.idle_list, &conn->idle_list);
   if (conn->state == STATE_REQ) {
     state_req(conn);

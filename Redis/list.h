@@ -25,7 +25,7 @@ inline void dlist_insert_before(DList *target, DList *rookie) {
   target->prev = rookie;
 }
 
-static uint64_t get_monotonic_usec() {
+inline uint64_t get_monotonic_usec() {
   struct timespec tv = {0, 0};
   clock_gettime(CLOCK_MONOTONIC, &tv);
   return uint64_t(tv.tv_sec) * 1000000 + tv.tv_nsec / 1000;
@@ -33,7 +33,7 @@ static uint64_t get_monotonic_usec() {
 
 const uint64_t k_idle_timeout_ms = 5 * 1000;
 
-static uint32_t next_timer_ms() {
+inline uint32_t next_timer_ms() {
   if (dlist_empty(&g_data.idle_list)) {
     return 10000;
   }
@@ -48,7 +48,7 @@ static uint32_t next_timer_ms() {
 
 typedef void (*call_back)(Conn *);
 
-static void process_timers(call_back cb) {
+inline void process_timers(call_back cb) {
   uint64_t now_us = get_monotonic_usec();
   while (!dlist_empty(&g_data.idle_list)) {
     Conn *next = container_of(g_data.idle_list.next, Conn, idle_list);
