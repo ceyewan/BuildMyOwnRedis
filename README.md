@@ -49,5 +49,38 @@
 
 ## 11-AVL-Tree-And-Sorted-Set
 
-使用上面实现的 AVL 树, 来实现 Sorted-Set, 也即保持数据的有序性. 在 Redis 中, 是使用的跳表来实现.
+使用上面实现的 AVL 树, 来实现 Sorted-Set, 以 O(logN) 的插入删除复杂度保持数据的有序性. 在实际 Redis 的实现中, 是使用的跳表.
 
+同时, 使用 HashTable 来优化数据的查找，复杂度从 O(logN) 降低到 O(1)。
+
+## TTL + ThreadPool
+
+基于链表实现了一个超时器，为了快速定位节点在链表中的位置，可以使用 HashTable 来处理。
+
+对于 zset 的删除操作，因为 value 是一棵 AVL 树，删除很费时，所以需要使用线程池来操作，避免阻塞操作
+
+## Redis
+
+重构了一下代码，避免 server.cpp 函数太长太臭了。将 g_data 放在 common.h 中，为了避免重复定义，将静态变量声明为 extern，这将告诉编译器该变量在另一个文件中定义，并且在链接阶段将为该变量分配一个单一的地址。然后我们在 server.cpp 中定义 g_data 即可。
+
+## Build
+
+```shell
+cd Redis
+make
+./server
+```
+
+接下来，可以执行如下指令操作 Redis
+
+```shell
+./client set k v
+./client get k
+./client del k
+./client zadd zset 1.1 n1
+./client zscore zset n1  # 1.1
+./client zrem zset n1
+./client zquery zset score name offset limit
+```
+
+也可以使用 test_cmds.py 脚本来测试 Redis
