@@ -56,7 +56,7 @@ struct Entry {
   ZSet *zset = NULL;
 };
 
-static struct {
+extern struct Data {
   HMap db;
   std::vector<Conn *> fd2conn;
   DList idle_list;
