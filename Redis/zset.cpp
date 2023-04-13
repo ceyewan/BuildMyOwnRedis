@@ -47,10 +47,6 @@ static void tree_add(ZSet *zset, ZNode *node) {
   while (true) {
     AVLNode **from = zless(&node->tree, cur) ? &cur->left : &cur->right;
     if (!*from) {
-      printf("Tree add show: \n \
-      cur->left = %p, cur->right = %p, \n \
-      &cur->left = %p, &cur->right = %p, \n\
-      *from = %p\n", cur->left, cur->right, &cur->left, &cur->right, *from);
       *from = &node->tree;
       node->tree.parent = cur;
       zset->tree = avl_fix(&node->tree);
